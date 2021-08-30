@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func Test_SendToFeedChannel(t *testing.T) {
+func Test_PrepareFeed(t *testing.T) {
 	// Open our jsonFile
 	jsonFile, err := os.Open("../test/test_feed.json")
 	// if we os.Open returns an error then handle it
@@ -25,7 +25,7 @@ func Test_SendToFeedChannel(t *testing.T) {
 	json.Unmarshal([]byte(byteValue), &result)
 
 	for _, feed := range result["feed"].([]interface{}) {
-		if _, err := SendToFeedChannel([]byte(feed.(string))); err != nil {
+		if _, err := PrepareFeed([]byte(feed.(string))); err != nil {
 			t.Error("Error sending to FeedChannel: ", err)
 		}
 	}

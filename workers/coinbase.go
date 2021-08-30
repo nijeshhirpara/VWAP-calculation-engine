@@ -35,6 +35,9 @@ type channelReq struct {
 
 var ProductIds = []string{"BTC-USD", "ETH-USD", "ETH-BTC"}
 
+// StartCoinbase connects to the given websocket.
+// It watches feeds and direct thyem to feedChannel so that we can use the feed data anywhere in the project.
+// It returns connection reference, feed channel and any error
 func StartCoinbase() (*websocket.Conn, chan FeedData, error) {
 	// feedChannel to receive messages from feed
 	feedChannel := make(chan FeedData, 100)
@@ -70,7 +73,7 @@ func StartCoinbase() (*websocket.Conn, chan FeedData, error) {
 				return
 			}
 
-			if fd, err := SendToFeedChannel(message); err == nil {
+			if fd, err := PrepareFeed(message); err == nil {
 				feedChannel <- fd
 			}
 
@@ -80,6 +83,7 @@ func StartCoinbase() (*websocket.Conn, chan FeedData, error) {
 	return c, feedChannel, nil
 }
 
+// StopCoinbase sends unsubscribe request to a given websocket connection
 func StopCoinbase(c *websocket.Conn) error {
 	if c == nil {
 		return errors.New("No active connection supplied")
@@ -96,7 +100,8 @@ func StopCoinbase(c *websocket.Conn) error {
 	return nil
 }
 
-func SendToFeedChannel(message []byte) (FeedData, error) {
+// PrepareFeed prepares FeedData from the given byte array
+func PrepareFeed(message []byte) (FeedData, error) {
 	var fd FeedData
 	var result map[string]interface{}
 	json.Unmarshal([]byte(message), &result)

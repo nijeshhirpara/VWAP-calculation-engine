@@ -26,7 +26,7 @@ func Test_appendToVWAPList(t *testing.T) {
 	json.Unmarshal([]byte(byteValue), &result)
 
 	for _, feed := range result["feed"].([]interface{}) {
-		fd, err := workers.SendToFeedChannel([]byte(feed.(string)))
+		fd, err := workers.PrepareFeed([]byte(feed.(string)))
 		if err != nil {
 			t.Error("Error sending to FeedChannel: ", err)
 			return

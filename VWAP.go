@@ -20,6 +20,11 @@ func init() {
 	FeedList = make(map[string]VWAP)
 }
 
+// appendToVWAPList prepares VWAP structure by updating calculation based on given feed.
+// It prepares a queue with 200 data point per trading pair.
+// To efficiently calculate VWAP on each feed as it arrives and print in realtime, below procedure pops data point from the queue
+// and append newly arrived data point into it. It calculates VWAP by removing poped data point's Price-Volume product and Volume
+// from TotalPV and TotalVome respectively in order to recalculate VWAP. This approach reduces the iterations through queue on each update.
 func appendToVWAPList(fd workers.FeedData) {
 	// check if key exists, if not create a new list for the key
 	if _, ok := FeedList[fd.ProductId]; !ok {
