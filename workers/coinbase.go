@@ -17,7 +17,7 @@ const (
 	channelName = "matches"
 )
 
-type feedData struct {
+type FeedData struct {
 	ProductId string
 	Price     float64
 	Volume    float64
@@ -33,9 +33,11 @@ type channelReq struct {
 	Channels []channel
 }
 
-func StartCoinbase() (*websocket.Conn, chan feedData, error) {
+var ProductIds = []string{"BTC-USD", "ETH-USD", "ETH-BTC"}
+
+func StartCoinbase() (*websocket.Conn, chan FeedData, error) {
 	// feedChannel to receive messages from feed
-	feedChannel := make(chan feedData, 100)
+	feedChannel := make(chan FeedData, 100)
 
 	// open websocket
 	log.Printf("connecting to %s", host)
@@ -49,7 +51,7 @@ func StartCoinbase() (*websocket.Conn, chan feedData, error) {
 	// subscribe to the channel
 	var req channelReq
 	req.Type = "subscribe"
-	req.Channels = []channel{channel{channelName, []string{"BTC-USD", "ETH-USD", "ETH-BTC"}}}
+	req.Channels = []channel{channel{channelName, ProductIds}}
 	err = c.WriteJSON(&req)
 	if err != nil {
 		return c, feedChannel, err
@@ -68,30 +70,10 @@ func StartCoinbase() (*websocket.Conn, chan feedData, error) {
 				return
 			}
 
-			var result map[string]interface{}
-			json.Unmarshal([]byte(message), &result)
-
-			if result["type"] == "match" {
-				priceStr, _ := result["price"].(string)
-				sizeStr, _ := result["size"].(string)
-
-				price, priceErr := strconv.ParseFloat(priceStr, 64)
-				if priceErr != nil {
-					price = 0
-				}
-
-				size, sizeErr := strconv.ParseFloat(sizeStr, 64)
-				if sizeErr != nil {
-					size = 0
-				}
-
-				var fd feedData
-				fd.ProductId = result["product_id"].(string)
-				fd.Price = price
-				fd.Volume = size
-
+			if fd, err := SendToFeedChannel(message); err == nil {
 				feedChannel <- fd
 			}
+
 		}
 	}()
 
@@ -112,4 +94,33 @@ func StopCoinbase(c *websocket.Conn) error {
 		return err
 	}
 	return nil
+}
+
+func SendToFeedChannel(message []byte) (FeedData, error) {
+	var fd FeedData
+	var result map[string]interface{}
+	json.Unmarshal([]byte(message), &result)
+
+	if result["type"] == "match" || result["type"] == "last_match" {
+		priceStr, _ := result["price"].(string)
+		sizeStr, _ := result["size"].(string)
+
+		price, priceErr := strconv.ParseFloat(priceStr, 64)
+		if priceErr != nil {
+			price = 0
+		}
+
+		size, sizeErr := strconv.ParseFloat(sizeStr, 64)
+		if sizeErr != nil {
+			size = 0
+		}
+
+		fd.ProductId = result["product_id"].(string)
+		fd.Price = price
+		fd.Volume = size
+
+		return fd, nil
+	}
+
+	return fd, errors.New("No match found")
 }

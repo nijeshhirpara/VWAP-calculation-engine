@@ -23,10 +23,13 @@ func main() {
 	}
 	defer close(feedChannel)
 
+	fmt.Print("\n------Volume-Weighted Average Price-------\n\n")
+
 	for {
 		select {
 		case feed := <-feedChannel:
-			fmt.Println(feed.ProductId, feed.Price, feed.Volume)
+			appendToVWAPList(feed)
+			printVWAP()
 		case <-interrupt:
 			log.Println("interrupt")
 			if err := workers.StopCoinbase(coinbaseConn); err != nil {
